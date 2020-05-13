@@ -83,35 +83,45 @@
     // Called every time a message comes in
     function onMessageHandler(target, context, msg, self) {
         // Remove whitespace from chat message
-        const commandName = msg.trim();
+        const command = msg.trim();
 
         // If the command is known, let's execute it
-
-            if (context.mod || (context["badges-raw"] != null && context["badges-raw"].startsWith("broadcaster"))) {
-                if (commandName.startsWith("!alert ")) {
-                    $("#modmessagebox").show();
-                    $("#modmessagebox").css({"background-color":"#00AA00"});
-                    $("#message").text(commandName.substr(7).toUpperCase());
-                    doAnimation();
-                } else if (commandName.startsWith("!delete")) {
-                  deleteAnimation();
-                } else if (commandName.startsWith("!hotseat ")) {
-                  hotseatison = true;
-                  $("#modmessagebox").show();
-                  hotseatuser = commandName.substr(10).toLowerCase();
-                  $("#modmessagebox").css({"background-color":"#aa1100"});
-                  $("#message").text("🔥 " + hotseatuser.toUpperCase() + " IS IN THE HOTSEAT 🔥");
-                  doAnimation();
-                }
+        if (context.mod || (context["badges-raw"] != null && context["badges-raw"].startsWith("broadcaster"))) {
+            if (command.startsWith("!alert ")) {
+                $("#modmessagebox").show();
+                $("#modmessagebox").css({"background-color":"#00AA00"});
+                $("#message").text(command.substr(7).toUpperCase());
+                doAnimation();
+            } else if (command.startsWith("!delete")) {
+                deleteAnimation();
+            } else if (command.startsWith("!hotseat ")) {
+                hotseatison = true;
+                $("#modmessagebox").show();
+                hotseatuser = command.substr(9).toLowerCase();
+                $("#modmessagebox").css({"background-color":"#aa1100"});
+                $("#message").text("🔥 " + hotseatuser.toUpperCase() + " IS IN THE HOTSEAT 🔥");
+                doAnimation();
             }
+        }
 
-            if (hotseatison) {
-                if (context.username == hotseatuser){
-                    $("#message").text("🔥 " + context['display-name'] + ": " + commandName + " 🔥");
-                    doHotseatAnimation();
+        if (hotseatison) {
+            if (context.username == hotseatuser){
+                // Apply profanity filter
+                filter = new Filter();
+                const filteredcommand = filter.clean(command)
+
+                // Attempt to detect profanity across whitespace
+                if (filter.isProfane(filteredcommand.replace(/\s/g, ''))) {
+                    /* Ditch this command, it's risky.
+                        Nothing we can do without more complex string processing */
+                    console.log("Hotseat user's message was suspected to contain bad words. User: " + context.username + ". Message: " + command);
+                    return;
                 }
-            }
 
+                $("#message").text("🔥 " + context['display-name'] + ": " + filteredcommand + " 🔥");
+                doHotseatAnimation();
+            }
+        }
     }
 
     // Animate text
@@ -132,8 +142,6 @@
         $("#message").animate({"opacity":1, "margin-left":"15px"}, 700);
     }
 
-
-
     // Animate off
     function deleteAnimation() {
         hotseatison = false;
@@ -141,17 +149,9 @@
         $("#message").animate({"opacity":0, "margin-left":"50px"}, 700);
     }
 
-    function censor_text(text) {
-        for bad_word in badwords
-            # If `bad_word` exists as a substring of `text`, replace the substring with asterisks
-            if text.find(bad_word) > -1:
-                censored_text = censored_text.replace(bad_word, '*'*len(bad_word))
-                censored = True
-        return censored_text
-    }
-
     function onConnectedHandler(addr, port) {
         console.log(`* Connected to ${addr}:${port}`);
     }
+
 </script>
 </html>
